@@ -68,10 +68,10 @@ class CasinoBank {
         // Total des mises aujourd'hui
         $stmt = $this->db->prepare(
             "SELECT 
-                COALESCE(SUM(rb.bet_amount), 0) as roulette_bets,
+                COALESCE(SUM(rb.amount), 0) as roulette_bets,
                 COALESCE(SUM(bh.bet_amount), 0) as blackjack_bets
              FROM 
-                (SELECT bet_amount FROM roulette_bets WHERE DATE(created_at) = CURDATE()) rb,
+                (SELECT amount FROM roulette_bets WHERE DATE(created_at) = CURDATE()) rb,
                 (SELECT bet_amount FROM blackjack_hands WHERE DATE(created_at) = CURDATE()) bh"
         );
         $stmt->execute();
@@ -84,7 +84,7 @@ class CasinoBank {
                 COALESCE(SUM(rb.winnings), 0) as roulette_winnings,
                 COALESCE(SUM(bh.winnings), 0) as blackjack_winnings
              FROM 
-                (SELECT winnings FROM roulette_bets WHERE DATE(created_at) = CURDATE() AND won = TRUE) rb,
+                (SELECT winnings FROM roulette_bets WHERE DATE(created_at) = CURDATE() AND is_winner = TRUE) rb,
                 (SELECT winnings FROM blackjack_hands WHERE DATE(created_at) = CURDATE() AND winnings > 0) bh"
         );
         $stmt->execute();

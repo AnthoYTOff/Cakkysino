@@ -176,9 +176,9 @@ try {
                 SELECT 
                     (SELECT COUNT(*) FROM roulette_bets WHERE user_id = ?) as roulette_games,
                     (SELECT COUNT(*) FROM blackjack_hands WHERE user_id = ?) as blackjack_games,
-                    (SELECT COALESCE(SUM(coins_earned), 0) FROM passive_earnings WHERE user_id = ?) as passive_earnings,
-                    (SELECT COALESCE(SUM(bet_amount), 0) FROM roulette_bets WHERE user_id = ?) as total_roulette_bets,
-                    (SELECT COALESCE(SUM(winnings), 0) FROM roulette_bets WHERE user_id = ? AND won = 1) as total_roulette_wins,
+                    (SELECT COALESCE(SUM(amount), 0) FROM passive_earnings WHERE user_id = ?) as passive_earnings,
+                    (SELECT COALESCE(SUM(amount), 0) FROM roulette_bets WHERE user_id = ?) as total_roulette_bets,
+                    (SELECT COALESCE(SUM(winnings), 0) FROM roulette_bets WHERE user_id = ? AND is_winner = 1) as total_roulette_wins,
                     (SELECT COALESCE(SUM(bet_amount), 0) FROM blackjack_hands WHERE user_id = ?) as total_blackjack_bets,
                     (SELECT COALESCE(SUM(winnings), 0) FROM blackjack_hands WHERE user_id = ? AND result = 'win') as total_blackjack_wins
             ");

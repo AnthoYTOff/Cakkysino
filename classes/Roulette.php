@@ -111,12 +111,12 @@ class Roulette {
             $this->bank->receivePayment($bet_amount, "Mise roulette de l'utilisateur {$user_id}");
             
             // Enregistrer la mise
-            $payout_multiplier = $this->payouts[$bet_type];
+            $payout_ratio = $this->payouts[$bet_type];
             $stmt = $this->db->prepare(
-                "INSERT INTO roulette_bets (game_id, user_id, bet_type, bet_value, bet_amount, payout_multiplier) 
+                "INSERT INTO roulette_bets (game_id, user_id, bet_type, bet_value, amount, payout_ratio) 
                  VALUES (?, ?, ?, ?, ?, ?)"
             );
-            $stmt->execute([$game['id'], $user_id, $bet_type, $bet_value, $bet_amount, $payout_multiplier]);
+            $stmt->execute([$game['id'], $user_id, $bet_type, $bet_value, $bet_amount, $payout_ratio]);
             
             // Mettre à jour le statut de la partie
             if ($game['game_status'] === 'waiting') {
@@ -178,7 +178,15 @@ class Roulette {
              ORDER BY rb.created_at ASC"
         );
         $stmt->execute([$game_id]);
-        return $stmt->fetchAll();
+        $bets = $stmt->fetchAll();
+        
+        // Mapper is_winner vers won et amount vers bet_amount pour la compatibilité frontend
+        foreach ($bets as &$bet) {
+            $bet['won'] = $bet['is_winner'];
+            $bet['bet_amount'] = $bet['amount'];
+        }
+        
+        return $bets;
     }
     
     // Lancer la roulette
@@ -242,12 +250,12 @@ class Roulette {
                 $won = $this->checkWinningBet($bet, $winning_number, $winning_color);
                 
                 if ($won) {
-                    $winnings = $bet['bet_amount'] * ($bet['payout_multiplier'] + 1); // +1 pour récupérer la mise
+                    $winnings = $bet['amount'] * ($bet['payout_ratio'] + 1); // +1 pour récupérer la mise
                     $total_winnings += $winnings;
                     
                     // Mettre à jour la mise
                     $stmt = $this->db->prepare(
-                        "UPDATE roulette_bets SET won = TRUE, winnings = ? WHERE id = ?"
+                        "UPDATE roulette_bets SET is_winner = TRUE, winnings = ? WHERE id = ?"
                     );
                     $stmt->execute([$winnings, $bet['id']]);
                 }
@@ -262,7 +270,7 @@ class Roulette {
             // Payer les gagnants
             foreach ($bets as $bet) {
                 if ($this->checkWinningBet($bet, $winning_number, $winning_color)) {
-                    $winnings = $bet['bet_amount'] * ($bet['payout_multiplier'] + 1);
+                    $winnings = $bet['amount'] * ($bet['payout_ratio'] + 1);
                     
                     // Créditer l'utilisateur
                     $this->user->updateCoins(
@@ -338,10 +346,17 @@ class Roulette {
             "SELECT rb.*, u.username 
              FROM roulette_bets rb 
              JOIN users u ON rb.user_id = u.id 
-             WHERE rb.game_id = ? AND rb.won = TRUE"
+             WHERE rb.game_id = ? AND rb.is_winner = TRUE"
         );
         $stmt->execute([$game_id]);
-        return $stmt->fetchAll();
+        $winners = $stmt->fetchAll();
+        
+        // Mapper is_winner vers won pour la compatibilité frontend
+        foreach ($winners as &$winner) {
+            $winner['won'] = $winner['is_winner'];
+        }
+        
+        return $winners;
     }
     
     // Programmer la fin automatique d'une partie (simulation)
@@ -372,12 +387,12 @@ class Roulette {
         $stats['total_games'] = $stmt->fetchColumn();
         
         // Total des mises
-        $stmt = $this->db->prepare("SELECT SUM(bet_amount) FROM roulette_bets");
+        $stmt = $this->db->prepare("SELECT SUM(amount) FROM roulette_bets");
         $stmt->execute();
         $stats['total_bets'] = $stmt->fetchColumn() ?? 0;
         
         // Total des gains
-        $stmt = $this->db->prepare("SELECT SUM(winnings) FROM roulette_bets WHERE won = TRUE");
+        $stmt = $this->db->prepare("SELECT SUM(winnings) FROM roulette_bets WHERE is_winner = TRUE");
         $stmt->execute();
         $stats['total_winnings'] = $stmt->fetchColumn() ?? 0;
         

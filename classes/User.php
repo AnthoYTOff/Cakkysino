@@ -163,23 +163,27 @@ class User {
     
     // Ajouter une transaction de coins
     private function addCoinTransaction($user_id, $type, $amount, $balance_after, $description) {
+        $balance_before = $balance_after - $amount;
         $stmt = $this->db->prepare(
-            "INSERT INTO coin_transactions (user_id, transaction_type, amount, balance_after, description) 
-             VALUES (?, ?, ?, ?, ?)"
+            "INSERT INTO coin_history (user_id, transaction_type, amount, balance_before, balance_after, description) 
+             VALUES (?, ?, ?, ?, ?, ?)"
         );
-        $stmt->execute([$user_id, $type, $amount, $balance_after, $description]);
+        $stmt->execute([$user_id, $type, $amount, $balance_before, $balance_after, $description]);
     }
     
     // Obtenir l'historique des transactions
     public function getTransactionHistory($user_id, $limit = 50) {
+        $limit = (int)$limit; // Convertir en entier pour éviter les erreurs SQL
+        $limit = max(1, min($limit, 1000)); // Limiter entre 1 et 1000 pour la sécurité
+        
         $stmt = $this->db->prepare(
-            "SELECT transaction_type, amount, balance_after, description, created_at 
-             FROM coin_transactions 
+            "SELECT transaction_type, amount, balance_before, balance_after, description, created_at 
+             FROM coin_history 
              WHERE user_id = ? 
              ORDER BY created_at DESC 
-             LIMIT ?"
+             LIMIT " . $limit
         );
-        $stmt->execute([$user_id, $limit]);
+        $stmt->execute([$user_id]);
         return $stmt->fetchAll();
     }
     

@@ -269,8 +269,8 @@ try {
                     u.username,
                     COUNT(rb.id) as games_played,
                     COALESCE(SUM(rb.bet_amount), 0) as total_bets,
-                    COALESCE(SUM(CASE WHEN rb.won = 1 THEN rb.winnings ELSE 0 END), 0) as total_winnings,
-                    COALESCE(SUM(CASE WHEN rb.won = 1 THEN rb.winnings ELSE 0 END) - SUM(rb.bet_amount), 0) as net_profit
+                    COALESCE(SUM(CASE WHEN rb.is_winner = 1 THEN rb.winnings ELSE 0 END), 0) as total_winnings,
+                    COALESCE(SUM(CASE WHEN rb.is_winner = 1 THEN rb.winnings ELSE 0 END) - SUM(rb.bet_amount), 0) as net_profit
                 FROM users u
                 LEFT JOIN roulette_bets rb ON u.id = rb.user_id
                 WHERE u.is_admin = 0

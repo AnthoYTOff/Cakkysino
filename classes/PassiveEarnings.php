@@ -132,11 +132,14 @@ class PassiveEarnings {
     
     // Enregistrer les gains passifs en base
     private function recordPassiveEarning($user_id, $coins_earned, $time_spent) {
+        // Note: La table passive_earnings nécessite session_id, earnings_rate et time_period_minutes
+        // Pour l'instant, on utilise des valeurs par défaut
         $stmt = $this->db->prepare(
-            "INSERT INTO passive_earnings (user_id, coins_earned, time_spent_seconds) 
-             VALUES (?, ?, ?)"
+            "INSERT INTO passive_earnings (user_id, session_id, amount, earnings_rate, time_period_minutes) 
+             VALUES (?, 1, ?, 1.00, ?)"
         );
-        $stmt->execute([$user_id, $coins_earned, $time_spent]);
+        $time_minutes = ceil($time_spent / 60); // Convertir secondes en minutes
+        $stmt->execute([$user_id, $coins_earned, $time_minutes]);
     }
     
     // Arrêter la session de gains
@@ -169,10 +172,10 @@ class PassiveEarnings {
         $stmt = $this->db->prepare(
             "SELECT 
                 COUNT(*) as total_sessions,
-                SUM(coins_earned) as total_coins_earned,
-                SUM(time_spent_seconds) as total_time_spent,
-                AVG(coins_earned) as avg_coins_per_session,
-                MAX(coins_earned) as best_session
+                SUM(amount) as total_coins_earned,
+                SUM(time_period_minutes * 60) as total_time_spent,
+                AVG(amount) as avg_coins_per_session,
+                MAX(amount) as best_session
              FROM passive_earnings 
              WHERE user_id = ?"
         );
@@ -183,10 +186,10 @@ class PassiveEarnings {
         $stmt = $this->db->prepare(
             "SELECT 
                 COUNT(*) as today_sessions,
-                COALESCE(SUM(coins_earned), 0) as today_coins,
-                COALESCE(SUM(time_spent_seconds), 0) as today_time
+                COALESCE(SUM(amount), 0) as today_coins,
+                COALESCE(SUM(time_period_minutes * 60), 0) as today_time
              FROM passive_earnings 
-             WHERE user_id = ? AND DATE(earned_at) = CURDATE()"
+             WHERE user_id = ? AND DATE(created_at) = CURDATE()"
         );
         $stmt->execute([$user_id]);
         $today_stats = $stmt->fetch();
@@ -199,14 +202,17 @@ class PassiveEarnings {
     
     // Obtenir l'historique des gains passifs
     public function getEarningsHistory($user_id, $limit = 20) {
+        $limit = (int)$limit; // Convertir en entier pour éviter les erreurs SQL
+        $limit = max(1, min($limit, 100)); // Limiter entre 1 et 100 pour la sécurité
+        
         $stmt = $this->db->prepare(
-            "SELECT coins_earned, time_spent_seconds, earned_at 
+            "SELECT amount as coins_earned, time_period_minutes * 60 as time_spent_seconds, created_at as earned_at 
              FROM passive_earnings 
              WHERE user_id = ? 
-             ORDER BY earned_at DESC 
-             LIMIT ?"
+             ORDER BY created_at DESC 
+             LIMIT " . $limit
         );
-        $stmt->execute([$user_id, $limit]);
+        $stmt->execute([$user_id]);
         return $stmt->fetchAll();
     }
     

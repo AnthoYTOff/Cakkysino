@@ -96,17 +96,17 @@ try {
                     (SELECT COUNT(*) FROM users WHERE is_admin = 0 AND last_activity > DATE_SUB(NOW(), INTERVAL 1 HOUR)) as active_users_1h,
                     (SELECT COUNT(*) FROM roulette_games WHERE created_at > DATE_SUB(NOW(), INTERVAL 24 HOUR)) as roulette_games_24h,
                     (SELECT COUNT(*) FROM blackjack_games WHERE created_at > DATE_SUB(NOW(), INTERVAL 24 HOUR)) as blackjack_games_24h,
-                    (SELECT COUNT(*) FROM passive_earning_sessions WHERE start_time > DATE_SUB(NOW(), INTERVAL 24 HOUR)) as passive_sessions_24h
+                    (SELECT COUNT(*) FROM passive_earnings_sessions WHERE start_time > DATE_SUB(NOW(), INTERVAL 24 HOUR)) as passive_sessions_24h
             ");
             $systemStats = $stmt->fetch(PDO::FETCH_ASSOC);
             
             // Statistiques financières
             $stmt = $db->query("
                 SELECT 
-                    (SELECT COALESCE(SUM(amount), 0) FROM coin_transactions WHERE created_at > DATE_SUB(NOW(), INTERVAL 24 HOUR) AND amount > 0) as coins_earned_24h,
-                    (SELECT COALESCE(SUM(ABS(amount)), 0) FROM coin_transactions WHERE created_at > DATE_SUB(NOW(), INTERVAL 24 HOUR) AND amount < 0) as coins_spent_24h,
-                    (SELECT COALESCE(SUM(bet_amount), 0) FROM roulette_bets WHERE created_at > DATE_SUB(NOW(), INTERVAL 24 HOUR)) as roulette_bets_24h,
-                    (SELECT COALESCE(SUM(winnings), 0) FROM roulette_bets WHERE created_at > DATE_SUB(NOW(), INTERVAL 24 HOUR) AND won = 1) as roulette_winnings_24h,
+                    (SELECT COALESCE(SUM(amount), 0) FROM coin_history WHERE created_at > DATE_SUB(NOW(), INTERVAL 24 HOUR) AND amount > 0) as coins_earned_24h,
+        (SELECT COALESCE(SUM(ABS(amount)), 0) FROM coin_history WHERE created_at > DATE_SUB(NOW(), INTERVAL 24 HOUR) AND amount < 0) as coins_spent_24h,
+                    (SELECT COALESCE(SUM(amount), 0) FROM roulette_bets WHERE created_at > DATE_SUB(NOW(), INTERVAL 24 HOUR)) as roulette_bets_24h,
+                    (SELECT COALESCE(SUM(winnings), 0) FROM roulette_bets WHERE created_at > DATE_SUB(NOW(), INTERVAL 24 HOUR) AND is_winner = 1) as roulette_winnings_24h,
                     (SELECT COALESCE(SUM(bet_amount), 0) FROM blackjack_hands WHERE created_at > DATE_SUB(NOW(), INTERVAL 24 HOUR)) as blackjack_bets_24h,
                     (SELECT COALESCE(SUM(winnings), 0) FROM blackjack_hands WHERE created_at > DATE_SUB(NOW(), INTERVAL 24 HOUR) AND result = 'win') as blackjack_winnings_24h
             ");
@@ -144,7 +144,7 @@ try {
                     END as status,
                     (
                         SELECT COUNT(*) 
-                        FROM passive_earning_sessions pes 
+                        FROM passive_earnings_sessions pes 
                         WHERE pes.user_id = u.id AND pes.start_time > DATE_SUB(NOW(), INTERVAL 24 HOUR)
                     ) as passive_sessions_24h,
                     (
@@ -183,7 +183,7 @@ try {
                     SUM(CASE WHEN amount < 0 THEN ABS(amount) ELSE 0 END) as total_spent,
                     SUM(amount) as net_change,
                     COUNT(*) as transaction_count
-                FROM coin_transactions
+                FROM coin_history
                 WHERE created_at > DATE_SUB(NOW(), INTERVAL ? DAY)
                 GROUP BY DATE(created_at)
                 ORDER BY date DESC
@@ -207,7 +207,7 @@ try {
                     COUNT(DISTINCT rg.id) as total_games,
                     COUNT(rb.id) as total_bets,
                     COALESCE(SUM(rb.bet_amount), 0) as total_bet_amount,
-                    COALESCE(SUM(CASE WHEN rb.won = 1 THEN rb.winnings ELSE 0 END), 0) as total_winnings,
+                    COALESCE(SUM(CASE WHEN rb.is_winner = 1 THEN rb.winnings ELSE 0 END), 0) as total_winnings,
                     COALESCE(AVG(rb.bet_amount), 0) as avg_bet_amount
                 FROM roulette_games rg
                 LEFT JOIN roulette_bets rb ON rg.id = rb.game_id
@@ -233,10 +233,10 @@ try {
             $stmt = $db->query("
                 SELECT 
                     COUNT(DISTINCT pes.id) as total_sessions,
-                    COALESCE(SUM(pe.coins_earned), 0) as total_coins_earned,
-                    COALESCE(SUM(pe.time_spent), 0) as total_time_spent,
-                    COALESCE(AVG(pe.coins_earned), 0) as avg_coins_per_earning
-                FROM passive_earning_sessions pes
+                    COALESCE(SUM(pe.amount), 0) as total_coins_earned,
+                    COALESCE(SUM(pe.time_period_minutes * 60), 0) as total_time_spent,
+                    COALESCE(AVG(pe.amount), 0) as avg_coins_per_earning
+                FROM passive_earnings_sessions pes
                 LEFT JOIN passive_earnings pe ON pes.id = pe.session_id
                 WHERE pes.start_time > DATE_SUB(NOW(), INTERVAL 7 DAY)
             ");

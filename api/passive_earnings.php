@@ -171,9 +171,9 @@ try {
             $stmt = $db->prepare("
                 SELECT 
                     u.username,
-                    COALESCE(SUM(pe.coins_earned), 0) as total_earned,
+                    COALESCE(SUM(pe.amount), 0) as total_earned,
                     COUNT(DISTINCT pe.session_id) as sessions_count,
-                    COALESCE(SUM(pe.time_spent), 0) as total_time
+                    COALESCE(SUM(pe.time_period_minutes * 60), 0) as total_time
                 FROM users u
                 LEFT JOIN passive_earnings pe ON u.id = pe.user_id
                 WHERE u.is_admin = 0

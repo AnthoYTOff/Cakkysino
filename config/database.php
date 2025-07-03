@@ -2,10 +2,10 @@
 // Configuration de la base de données
 
 class Database {
-    private $host = 'localhost';
-    private $db_name = 'cakkysino';
-    private $username = 'root';
-    private $password = '';
+    private $host = '185.207.226.9';
+    private $db_name = 'rsneay_cakkysin_db';
+    private $username = 'rsneay_cakkysin_db';
+    private $password = 'w%WL*b86-f!OI54u';
     private $conn;
     
     public function getConnection() {

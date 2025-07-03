@@ -1,8 +1,8 @@
 -- CakkySino - Structure de base de données MySQL
 -- Créé pour un système de casino en ligne complet
 
-CREATE DATABASE IF NOT EXISTS cakkysino CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE cakkysino;
+CREATE DATABASE IF NOT EXISTS rsneay_cakkysin_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE rsneay_cakkysin_db;
 
 -- Table des utilisateurs
 CREATE TABLE users (
@@ -14,12 +14,14 @@ CREATE TABLE users (
     is_admin BOOLEAN DEFAULT FALSE,
     is_online BOOLEAN DEFAULT FALSE,
     last_activity TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    last_login TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_username (username),
     INDEX idx_email (email),
     INDEX idx_is_online (is_online),
-    INDEX idx_last_activity (last_activity)
+    INDEX idx_last_activity (last_activity),
+    INDEX idx_last_login (last_login)
 );
 
 -- Table de la banque du casino
